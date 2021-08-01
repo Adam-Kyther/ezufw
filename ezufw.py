@@ -35,7 +35,7 @@ LOGGER = logging.getLogger('ufw')
 
 
 class EzUFW(UFWFrontend):
- 
+
     SPLITTER = re.compile(r'\s+')
     PORT_SPLITTER = re.compile(r',')
     IPV4_REGEX = re.compile(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}')
@@ -74,14 +74,14 @@ class EzUFW(UFWFrontend):
 
     def delete_by_port(self, *ports):
         """
-        Remove the rules connected with specifiec port. Counter keep numbering for the rule. 
+        Remove the rules connected with specifiec port. Counter keep numbering for the rule.
         When the rule is removed from ufw other rules are lifted and rules' indexes are changed.
 
         @return list of removed rules.
         """
         removed_rules = []
         selected_ports = [max(0, int(port)) for port in ports]
- 
+
         counter = 1
         for rule in self.rules():
             rule_port = -1 if rule.dport is None else int(rule.dport)
@@ -138,7 +138,7 @@ class EzUFW(UFWFrontend):
     def insert(self, ip_address, index=1, comment=""):
         """
         UFW (iptables) rules are applied in order of insertion. When the rule is matched other rules are skipped.
-        In case when given IP should be banned, the rule must be on top. 
+        In case when given IP should be banned, the rule must be on top.
         """
         cmd = ["insert", index, "deny", "from", ip_address]
         if comment:
