@@ -5,3 +5,5 @@ main.py
 build
 dist
 *.egg-info
+venv
+env

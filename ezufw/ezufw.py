@@ -25,29 +25,44 @@
 from ufw.common import programName
 from ufw.frontend import UFWFrontend, parse_command
 import gettext
-import logging
 import re
-
 
 gettext.install(programName)
 
-LOGGER = logging.getLogger('ufw')
-
 
 class EzUFW(UFWFrontend):
+    """
+    Class which extends UFWFrontend and allows manipulate UFW.
+    """
 
+    """Splitter for commands. Includes more than 1 space."""
     SPLITTER = re.compile(r'\s+')
+
+    """Ports splitter. Default is ','"""
     PORT_SPLITTER = re.compile(r',')
+
+    """IPv4 regex"""
+
     IPV4_REGEX = re.compile(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}')
+
     EMPTY = ""
 
     def __init__(self, dry_run=False):
         super().__init__(dry_run)
 
     def rules(self):
+        """
+        :return: list of stored rules from UFW.
+        """
         return self.backend.get_rules()
 
     def _command(self, *cmd):
+        """
+        Inner method to build command using UFW command parser.
+
+        :param cmd: arguments for command.
+        :return: string, parsed command.
+        """
         command = [programName]
         for c in cmd:
             command.extend(self.SPLITTER.split(str(c)))
@@ -55,26 +70,49 @@ class EzUFW(UFWFrontend):
         return parse_command(command)
 
     def execute(self, *cmd, force=False):
+        """
+        Execute provided command with UFW.
+
+        :param cmd: arguments for command.
+        :param force: True if force, otherwise False. False by default.
+        :return:
+        """
         ufw_cmd = self._command(*cmd)
         rule = ufw_cmd.data.get('rule', self.EMPTY)
         ip_type = ufw_cmd.data.get('iptype', self.EMPTY)
         return self.do_action(ufw_cmd.action, rule, ip_type, force)
 
     def reset(self, default_policies=True, force=True):
+        """
+        Reset UFW configuration.
+        Default policies includes:
+        * default deny incoming,
+        * default allow outgoing.
+
+        :param default_policies: default True. Default policies will be applied.
+        :param force: True if force, otherwise False. True by default.
+        :return:
+        """
         self.execute('reset', force=force)
         if default_policies:
             self.execute("default", "deny", "incoming", force=force)
             self.execute("default", "allow", "outgoing", force=force)
 
     def enable(self):
+        """
+        Enable the UFW.
+        """
         self.set_enabled(True)
 
     def disable(self):
+        """
+        Disable the UFW.
+        """
         self.set_enabled(False)
 
     def delete_by_port(self, *ports):
         """
-        Remove the rules connected with specifiec port. Counter keep numbering for the rule.
+        Remove the rules connected with specified port. Counter keep numbering for the rule.
         When the rule is removed from ufw other rules are lifted and rules' indexes are changed.
 
         @return list of removed rules.

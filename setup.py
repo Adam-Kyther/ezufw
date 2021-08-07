@@ -33,12 +33,14 @@ def get_last_commit_version(encoding='utf-8'):
 
 ### settings
 
+DESCRIPTION = "UFW Wrapper"
+
 setup(
     name="ezufw",
     version=get_last_commit_version(),
-    author="Adam Kyther",
+    author="Marek Adam Gancarz",
     author_email="",
-    desciption="UFW Wrapper",
+    description=DESCRIPTION,
     long_description=get_long_description(README_PATH),
     long_description_content_type="text/markdown",
     packages=find_packages(),
