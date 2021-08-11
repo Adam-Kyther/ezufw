@@ -55,20 +55,11 @@ class EzUFW(UFWFrontend):
         self.root_dir = root_dir
         self.data_dir = data_dir
 
-    def refresh_backend(self) -> UFWBackendIptables:
-        """
-        Refresh is necessary if changes have been performed with UFWFrontend.
-
-        :return: UFWBackendIptables, refreshed backend.
-        """
-        self.backend = UFWBackendIptables(self.dry_run, rootdir=self.root_dir, datadir=self.data_dir)
-        return self.backend
-
     def rules(self) -> List:
         """
         :return: list of stored rules from UFW.
         """
-        return self.refresh_backend().get_rules()
+        return UFWBackendIptables(self.dry_run, rootdir=self.root_dir, datadir=self.data_dir).get_rules()
 
     def _command(self, *cmd: Any) -> AnyStr:
         """
