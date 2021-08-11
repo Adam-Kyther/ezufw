@@ -1,1 +1,1 @@
-from .ezufw import EzUFW
+from .ezufw import *
