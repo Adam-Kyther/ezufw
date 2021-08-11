@@ -21,11 +21,13 @@
 # sudo ufw deny icmp
 # sudo ufw deny from <ip>
 """
-
-from ufw.common import programName
-from ufw.frontend import UFWFrontend, parse_command
 import gettext
 import re
+from typing import List, Any, AnyStr
+
+from ufw.backend_iptables import UFWBackendIptables
+from ufw.common import programName
+from ufw.frontend import UFWFrontend, parse_command
 
 gettext.install(programName)
 
@@ -47,16 +49,28 @@ class EzUFW(UFWFrontend):
 
     EMPTY = ""
 
-    def __init__(self, dry_run=False):
-        super().__init__(dry_run)
+    def __init__(self, dry_run: bool = False, backend_type: str = "iptables", root_dir: str = None, data_dir: str = None):
+        super().__init__(dryrun=dry_run, backend_type=backend_type, rootdir=root_dir, datadir=data_dir)
+        self.dry_run = dry_run
+        self.root_dir = root_dir
+        self.data_dir = data_dir
 
-    def rules(self):
+    def refresh_backend(self) -> UFWBackendIptables:
+        """
+        Refresh is necessary if changes have been performed with UFWFrontend.
+
+        :return: UFWBackendIptables, refreshed backend.
+        """
+        self.backend = UFWBackendIptables(self.dry_run, rootdir=self.root_dir, datadir=self.data_dir)
+        return self.backend
+
+    def rules(self) -> List:
         """
         :return: list of stored rules from UFW.
         """
-        return self.backend.get_rules()
+        return self.refresh_backend().get_rules()
 
-    def _command(self, *cmd):
+    def _command(self, *cmd: Any) -> AnyStr:
         """
         Inner method to build command using UFW command parser.
 
@@ -69,7 +83,7 @@ class EzUFW(UFWFrontend):
 
         return parse_command(command)
 
-    def execute(self, *cmd, force=False):
+    def execute(self, *cmd, force: bool = False) -> None:
         """
         Execute provided command with UFW.
 
@@ -82,7 +96,7 @@ class EzUFW(UFWFrontend):
         ip_type = ufw_cmd.data.get('iptype', self.EMPTY)
         return self.do_action(ufw_cmd.action, rule, ip_type, force)
 
-    def reset(self, default_policies=True, force=True):
+    def reset(self, default_policies: bool = True, force: bool = True) -> None:
         """
         Reset UFW configuration.
         Default policies includes:
@@ -98,19 +112,19 @@ class EzUFW(UFWFrontend):
             self.execute("default", "deny", "incoming", force=force)
             self.execute("default", "allow", "outgoing", force=force)
 
-    def enable(self):
+    def enable(self) -> None:
         """
         Enable the UFW.
         """
         self.set_enabled(True)
 
-    def disable(self):
+    def disable(self) -> None:
         """
         Disable the UFW.
         """
         self.set_enabled(False)
 
-    def delete_by_port(self, *ports):
+    def delete_by_port(self, *ports : Any) -> List:
         """
         Remove the rules connected with specified port. Counter keep numbering for the rule.
         When the rule is removed from ufw other rules are lifted and rules' indexes are changed.
@@ -129,9 +143,9 @@ class EzUFW(UFWFrontend):
             else:
                 counter += 1
 
-        return removed_irules
+        return removed_rules
 
-    def delete_by_ip(self, *ip_address):
+    def delete_by_ip(self, *ip_address: Any) -> List:
         """
         Remove the rules connected to specific ip_address.
         """
@@ -146,7 +160,7 @@ class EzUFW(UFWFrontend):
 
         return removed_rules
 
-    def deny(self, port=None, protocol=None):
+    def deny(self, port: int = None, protocol: int = None):
         values = []
         if port is not None:
             values.append(port)
@@ -159,21 +173,21 @@ class EzUFW(UFWFrontend):
         cmd = ('default', 'deny') if port_and_protocol is None else ("deny", port_and_protocol)
         return self.execute(*cmd)
 
-    def deny_from(self, ip_address, *ports):
+    def deny_from(self, ip_address: str, *ports: Any):
         if ports:
             for port in ports:
                 self.execute("deny", "from", ip_address, "to", "any", "port", port)
         else:
             self.execute("deny", "from", ip_address)
 
-    def allow_from(self, ip_address, *ports):
+    def allow_from(self, ip_address: str, *ports: Any):
         if ports:
             for port in ports:
                 self.execute("allow", "from", ip_address, "to", "any", "port", port)
         else:
             self.execute("allow", "from", ip_address)
 
-    def insert(self, ip_address, index=1, comment=""):
+    def insert(self, ip_address: str, index: int = 1, comment: str = ""):
         """
         UFW (iptables) rules are applied in order of insertion. When the rule is matched other rules are skipped.
         In case when given IP should be banned, the rule must be on top.
@@ -183,7 +197,7 @@ class EzUFW(UFWFrontend):
             cmd.extend(["comment", comment])
         return self.execute(*cmd)
 
-    def status(self, verbose=True):
+    def status(self, verbose: bool = True):
         cmd = ("status", "verbose") if verbose else ("status",)
         return self.execute(*cmd)
 
